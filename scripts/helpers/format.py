@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 import pandas as pd
 import re
+import networkx as nx
 
 DEFAULT_UNWEIGHTED_NETWORK_WEIGHT = 1
 
@@ -52,4 +53,11 @@ def parse_via_regex(filename_in:str, pattern:str, order=[0,1,2], unweighted=Fals
     print()
     return data_frame
     
-    
+def create_graph(np_arr, directional=False):
+    G = None
+    if directional:
+        G = nx.DiGraph()
+    else:
+        G = nx.Graph()
+    G.add_weighted_edges_from(np_arr)
+    return G
