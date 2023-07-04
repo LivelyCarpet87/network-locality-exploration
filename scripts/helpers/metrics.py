@@ -1,21 +1,23 @@
-import networkx as nx
+#import networkx as nx
 import pandas as pd
 
 def sparsity(G):
-    sparsity = nx.density(G)
+    sparsity = G.density()
     print(f"Sparsity: {sparsity}")
     return sparsity
 
-def betweenness_centrality(G):
-    centrality_dict = nx.betweenness_centrality(G)
+def centrality(G):
+    centrality_list = G.betweenness()
     centrality_arr = []
-    for key in centrality_dict:
+    vertex = 0
+    for item in centrality_list:
         entry = []
-        entry.append(key)
-        entry.append(centrality_dict[key])
+        entry.append(vertex)
+        entry.append(item)
         centrality_arr.append(entry)
+        vertex += 1
     centrality_df = pd.DataFrame(centrality_arr,columns=["Node","Centrality"])
-    centrality_df.sort_values("Node", inplace=True)
+    centrality_df.sort_values("Centrality", inplace=True)
     print(f"Centrality:")
     print(centrality_df)
     return centrality_df

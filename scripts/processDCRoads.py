@@ -4,8 +4,7 @@ import helpers.visualize as v
 import helpers.metrics as m
 
 df = f.parse_via_regex("datasets/Transport/DC.tmp", r"(\d+) (\d+)\n[\d.]+ ([\d.]+) [\d.]+")
-np_arr = df.to_numpy()
-G = f.create_graph(np_arr)
+G = f.create_graph(df)
 #v.graph(np_arr)
 m.sparsity(G)
-m.betweenness_centrality(G)
+m.centrality(G)

@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 import pandas as pd
 import re
-import networkx as nx
+#import networkx as nx
+from igraph import Graph
 
 DEFAULT_UNWEIGHTED_NETWORK_WEIGHT = 1
 
@@ -32,8 +33,8 @@ def parse_via_regex(filename_in:str, pattern:str, order=[0,1,2], unweighted=Fals
     data_extract_str = re.findall(pattern, contents, flags=0)
     def cast_weight_to_float(row):
         ret = []
-        ret.append(row[ order[0] ])
-        ret.append(row[ order[1] ])
+        ret.append(int(row[ order[0] ]))
+        ret.append(int(row[ order[1] ]))
         if not unweighted:
             weight = 0
             try:
@@ -53,11 +54,6 @@ def parse_via_regex(filename_in:str, pattern:str, order=[0,1,2], unweighted=Fals
     print()
     return data_frame
     
-def create_graph(np_arr, directional=False):
-    G = None
-    if directional:
-        G = nx.DiGraph()
-    else:
-        G = nx.Graph()
-    G.add_weighted_edges_from(np_arr)
+def create_graph(dataframe, directional=False):
+    G = Graph.DataFrame(dataframe, directed=directional)
     return G
