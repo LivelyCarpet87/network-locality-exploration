@@ -23,9 +23,6 @@ def parse_separated_values(filename_in:str, delimiter=",", remove_header=True, u
     
     data_map = map(parse_line, lines)
     data_frame = pd.DataFrame(data_map, columns=["From", "To", "Weight"])
-    print("Data Frame Preview:")
-    print(data_frame)
-    print()
     return data_frame
 
 def parse_via_regex(filename_in:str, pattern:str, order=[0,1,2], unweighted=False):
@@ -40,7 +37,7 @@ def parse_via_regex(filename_in:str, pattern:str, order=[0,1,2], unweighted=Fals
             try:
                 weight = float(row[ order[2] ])
             except ValueError:
-                print("Illegal Non-Float Weight Detected")
+                print(f"Illegal Non-Float Weight Detected {row[ order[2] ]}")
                 return
             ret.append(weight)
         else:
@@ -49,9 +46,6 @@ def parse_via_regex(filename_in:str, pattern:str, order=[0,1,2], unweighted=Fals
     
     data_map = map(cast_weight_to_float,data_extract_str)
     data_frame = pd.DataFrame(data_map, columns=["From", "To", "Weight"])
-    print("Data Frame Preview:")
-    print(data_frame)
-    print()
     return data_frame
     
 def create_graph(dataframe, directional=False):
