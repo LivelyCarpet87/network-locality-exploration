@@ -27,6 +27,9 @@ def parse_separated_values(filename_in:str, delimiter=",", remove_header=True, u
 
 def parse_via_regex(filename_in:str, pattern:str, order=[0,1,2], unweighted=False):
     contents = open(filename_in).read()
+    return parse_content_via_regex(contents, pattern, order, unweighted)
+
+def parse_content_via_regex(contents, pattern:str, order=[0,1,2], unweighted=False):
     data_extract_str = re.findall(pattern, contents, flags=0)
     def cast_weight_to_float(row):
         ret = []
