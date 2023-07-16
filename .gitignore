@@ -154,3 +154,4 @@ cython_debug/
 
 datasets/**
 datasets.db
+datasets_konect.db

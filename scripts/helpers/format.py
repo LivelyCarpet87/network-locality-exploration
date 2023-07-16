@@ -30,7 +30,7 @@ def parse_via_regex(filename_in:str, pattern:str, order=[0,1,2], unweighted=Fals
     return parse_content_via_regex(contents, pattern, order, unweighted)
 
 def parse_content_via_regex(contents, pattern:str, order=[0,1,2], unweighted=False):
-    data_extract_str = re.findall(pattern, contents, flags=0)
+    data_extract_str = re.findall(pattern, contents, flags=re.M)
     def cast_weight_to_float(row):
         ret = []
         ret.append(int(row[ order[0] ]))
