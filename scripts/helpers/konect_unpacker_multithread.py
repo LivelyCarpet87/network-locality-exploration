@@ -7,6 +7,7 @@ from tqdm import tqdm
 import concurrent.futures
 
 import format as f
+import metrics as m
 
 def process_entry(entry):
     internal_name = entry[0]
@@ -36,7 +37,7 @@ def process_entry(entry):
         tar = tarfile.open(filepath)
     except tarfile.ReadError:
         print(f"Error opening {internal_name}'s tar file!")
-        return
+        return (None, None)
     contents = tar.getnames()
     folder = contents.pop(0)
     for name in contents:
@@ -50,20 +51,23 @@ def process_entry(entry):
     op = Path(output_path)
     if not os.path.isdir(output_path):
         print(f"Error unpacking {internal_name}'s tar file!")
-        return
+        return (None, None)
     datapath = ""
     for item in op.iterdir():
         if "out." in item.as_posix():
             datapath = item
     if not os.path.isfile(datapath):
         print(f"Error locating {internal_name}'s unpacked data file!")
-        return
+        return (None, None)
     df = f.parse_via_regex(datapath, r"^(\d+)[ \t,]+(\d+)(?:[ \t,]+([-+]?\d?(?:\.\d+)?(?:(?:[Ee]-\d+)?)?))?", order=[0,1,2], unweighted=unweighted)
     if df.shape[0] != edge_count:
         print(f"{df.shape[0]} != {edge_count}, {internal_name} may have errors.")
-        return
+        return (None, None)
     G = f.create_graph(df, directional=directional)
+    #sparsity = m.sparsity(G)
+    #centrality = m.centrality(G)
     shutil.rmtree(path)
+    return (None, None)
 
 con = sqlite3.connect("datasets_konect.db")
 cur = con.cursor()
@@ -71,5 +75,6 @@ cur = con.cursor()
 res1 = cur.execute("SELECT internal_name, node_count, edge_count, network_format, edge_type, link FROM datasets")
 entries = res1.fetchall()
 
-with concurrent.futures.ThreadPoolExecutor(max_workers=8) as executor:
+with concurrent.futures.ThreadPoolExecutor() as executor:
     results = list(tqdm(executor.map(process_entry, entries), total=len(entries)))
+print(results)
