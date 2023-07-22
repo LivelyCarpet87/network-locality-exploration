@@ -19,7 +19,10 @@ graph_1 = [
     [9, 0, 1]
 ]
 df = pandas.DataFrame(graph_1, columns=["From", "To", "Weight"])
-res = m.calculate_geodesic_tau(df,0,7)
-print(res)
-res = m.calculate_geodesic_k(df,0,3)
+#res = m.calculate_geodesic_tau(df,0,7)
+#print(res)
+#res = m.calculate_geodesic_k(df,0,3)
+#print(res)
+G = f.create_graph(df)
+res = m.calculate_geodesic_tau_dijkstra(G, 0, 10)
 print(res)

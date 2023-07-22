@@ -1,6 +1,9 @@
 #import networkx as nx
+import time
 import pandas as pd
 from igraph import Graph
+from multiprocessing import Pool, Queue
+import queue
 
 def sparsity(G:Graph):
     sparsity = G.density()
@@ -125,3 +128,58 @@ def calculate_geodesic_k(edgelist:pd.DataFrame, src:int, k:int, directional=Fals
     dist.sort_values("Distance", inplace=True)
     return dist
 
+def calculate_geodesic_tau_dijkstra(G:Graph, src:int, tau:float, directional=False):
+    INF = float("Inf")
+    dist = pd.DataFrame({'Distance':pd.Series([], dtype="float64"),'Order':pd.Series([], dtype='int64'),'Back Pointer':pd.Series([], dtype='int64')})
+    for i in range(G.vcount()):
+        dist.loc[i] = [INF, -1, -1]
+    dist.loc[src] = [0, 0, -1]
+
+    priorityQueue = Queue()
+    priorityQueue.put(src)
+
+    def dijkstra_step(G:Graph, dist, target, priorityQueue:Queue):
+        adjacents = []
+        if directional == False:
+            adjacents = G.neighbors(target, mode="all")
+        else:
+            adjacents = G.neighbors(target, mode="out")
+
+        print(adjacents)
+
+        for node in adjacents:
+            if node == target:
+                continue
+            eids = G.get_eids([(target, node)])
+            distance = INF
+            for eid in eids:
+                weight = G.es[eid]["Weight"]
+                if weight < distance:
+                    distance = weight
+            
+            add_to_queue = False
+            if dist.loc[node]["Distance"] == INF:
+                add_to_queue = True
+            new_distance = distance + dist.loc[target]["Distance"]
+
+            if dist.loc[node]["Distance"] > new_distance:
+                dist.loc[node]["Distance"] = new_distance
+                dist.loc[node]["Order"] = dist.loc[target]["Order"] + 1
+                dist.loc[node]["Back Pointer"] = target
+
+            if add_to_queue:
+                priorityQueue.put(node)
+        return
+    with Pool(processes=4) as pool:
+        while True:
+            target = -1
+            try:
+                target = priorityQueue.get(timeout=1)
+            except queue.Empty:
+                break
+            pool.apply_async(dijkstra_step, (G,dist,target,priorityQueue,))
+            print("Launching worker.")
+        print(priorityQueue.qsize())
+        pool.close()
+        pool.join()
+    return dist
