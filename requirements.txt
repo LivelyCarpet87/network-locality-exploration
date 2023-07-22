@@ -5,3 +5,5 @@ networkx
 igraph
 matplotlib
 numpy
+python-magic
+requests

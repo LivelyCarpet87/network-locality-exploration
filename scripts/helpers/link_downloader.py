@@ -27,7 +27,7 @@ def process_file(filepath, nodes, edges, filesize):
     filetype = magic.from_file(filepath)
     if filetype.startswith("ASCII text") or filetype.startswith("CSV") or filetype.startswith("Unicode text") or filetype.startswith("C source"):
         #print(f"Need TXT Processing")
-        df = f.parse_via_regex(filepath, r"(\d+)[ \t,]+(\d+)[ \t,]+(\d+(?:\.\d+(?:[Ee]-\d+)?)?)")
+        df = f.parse_via_regex(filepath, r"^(\d+)[ \t,]+(\d+)[ \t,]+([-+]?\d+(?:\.\d+)?(?:(?:[Ee]-\d+)?)?)")
         if df is not None and df.shape[0] in range(edges-1, int(edges+2)):
             success += 1
             print(f"File Found {success}/{attempts}")
@@ -138,10 +138,10 @@ for source_UID_res in source_UIDS:
                 process_link(filepath, url, node_count, edge_count, filesize)
                 continue
         except requests.exceptions.ConnectTimeout:
-            print(f"Error: {source_UID}/{dataset_UID} Webpage Connect Timeout")
+            #print(f"Error: {source_UID}/{dataset_UID} Webpage Connect Timeout")
             continue
         except requests.exceptions.ReadTimeout:
-            print(f"Error: {source_UID}/{dataset_UID} Webpage Read Timeout")
+            #print(f"Error: {source_UID}/{dataset_UID} Webpage Read Timeout")
             continue
         except requests.exceptions.SSLError:
                 continue
@@ -152,7 +152,7 @@ for source_UID_res in source_UIDS:
                 EC.presence_of_element_located((By.XPATH, "//a"))
             )
         except selenium.common.exceptions.TimeoutException:
-            print(f"{source_UID}/{dataset_UID} Timeout Exception!")
+            #print(f"{source_UID}/{dataset_UID} Timeout Exception!")
             continue
         link_eles = driver.find_elements(By.XPATH, "//a")
         driver.save_screenshot(os.path.join(os.getcwd(),f'datasets/ICON/{source_UID}/{dataset_UID}/screenshot.png'))
@@ -167,7 +167,7 @@ for source_UID_res in source_UIDS:
             except requests.exceptions.SSLError:
                 continue
             if link is None:
-                print(f"{source_UID}/{dataset_UID} No valid link found in href!")
+                #print(f"{source_UID}/{dataset_UID} No valid link found in href!")
                 continue
             elif link.endswith(".pdf") or link.endswith(".html") or link.endswith(".php") or link.endswith(".cfm") or link.endswith(".png") or link.endswith(".jpg") or link.endswith(".htm") or link.endswith(".jsp") or link.startswith("mailto:") or link.startswith("javascript:"):
                 continue
