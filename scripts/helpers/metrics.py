@@ -36,25 +36,23 @@ def calculate_geodesic_tau(edgelist:pd.DataFrame, src:int, tau:float, directiona
         # of the picked vertex. Consider only those vertices which are
         # still in queue
         def row_operation(row):
+            changed = None
             source, dest, weight = row
             #print(source, dest, weight, abs(dist[source] + weight) <= tau, dist)
             if dist[source] != INF and abs(dist[source] + weight) <= tau and dist[source] + weight < dist[dest]:
                 dist[dest] = dist[source] + weight
-                break_const = 0
+                changed = True
             if not directional:
                 if signed and dist[dest] != INF and abs(dist[dest] - weight) <= tau and dist[dest] - weight < dist[source]:
                     dist[source] = dist[dest] - weight
-                    break_const = 0
+                    changed = True
                 elif not signed and dist[dest] != INF and abs(dist[dest] + weight) <= tau and dist[dest] + weight < dist[source]:
                     dist[source] = dist[dest] + weight
-                    break_const = 0
-        edgelist.apply(row_operation, axis=1)
-        """
-        if break_const == 1:
-            break_const += 1
-        if break_const == 2:
+                    changed = True
+            return changed
+        res = edgelist.apply(row_operation, axis=1)
+        if res.dropna().shape[0] == 0:
             break
-        """
 
     # Step 3: Check for negative-weight cycles. The above step 
     # guarantees shortest distances if graph doesn't contain 
@@ -103,28 +101,27 @@ def calculate_geodesic_k(edgelist:pd.DataFrame, src:int, k:int, directional=Fals
         # of the picked vertex. Consider only those vertices which are
         # still in queue
         def row_operation(row):
+            changed = None
             source, dest, weight = row
             if dist.iat[source, 0] != INF and dist.iat[source, 0] + weight < dist.iat[dest, 0] and dist.iat[dest, 1] < k:
                 dist.iat[dest, 0] = dist.iat[source, 0] + weight
                 dist.iat[dest, 1] = dist.iat[source, 1] + 1
-                break_const = 0
+                changed = True
             if not directional:
                 if signed and dist.iat[dest, 0] != INF and dist.iat[dest, 0] - weight < dist.iat[source, 0] and dist.iat[dest, 1] < k:
                     dist.iat[source, 0] = dist.iat[dest, 0] - weight
                     dist.iat[source, 1] = dist.iat[dest, 1] + 1
-                    break_const = 0
+                    changed = True
                 elif not signed and dist.iat[dest, 0] != INF and dist.iat[dest, 0] + weight < dist.iat[source, 0] and dist.iat[dest, 1] < k:
                     dist.iat[source, 0] = dist.iat[dest, 0] + weight
                     dist.iat[source, 1] = dist.iat[dest, 1] + 1
-                    break_const = 0
-        edgelist.apply(row_operation, axis=1)
-        """
-        if break_const == 1:
-            break_const += 1
-        if break_const == 2:
+                    changed = True
+            return changed
+        res = edgelist.apply(row_operation, axis=1)
+        if res.dropna().shape[0] == 0:
             break
-        """
     dist.replace(INF, None, inplace=True)
     dist.dropna(inplace = True)
     dist.sort_values("Distance", inplace=True)
     return dist
+
