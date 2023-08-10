@@ -10,7 +10,7 @@ SIZE = 1000
 edges = []
 for j in range(1,21):
     for i in range(0,SIZE):
-        new_edge = [i, (i+j)%SIZE, 1/j]
+        new_edge = [i, (i+j)%SIZE, random.random()]
         edges.append(new_edge)
 
 new_edges = []
