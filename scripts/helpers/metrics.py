@@ -264,13 +264,14 @@ def generate_v_func():
     con_2 = sqlite3.connect("./constants.db")
     cur_2 = con_2.cursor()
     cur_2.execute("CREATE TABLE IF NOT EXISTS v_func(x FLOAT UNIQUE, y FLOAT AS (exp(pow(x,0.9)) * pow(1+x,1.2)) STORED)")
-    for i in range(1,10**7):
-        cur_2.execute("INSERT INTO v_func VALUES(?)",[i/10000])
+    for i in range(0,10**6):
+        cur_2.execute("INSERT INTO v_func VALUES(?)",[i/1000])
     con_2.commit()
 
 
 def convert_to_g_sqlite(con:sqlite3.Connection, undirected = True):
     cur = con.cursor()
+    cur.execute("DROP TABLE IF EXISTS neg_laplacian_edgelist")
     cur.execute("CREATE TABLE neg_laplacian_edgelist(source INT, destination INT, weight FLOAT)")
     con.commit()
 
@@ -282,6 +283,7 @@ def convert_to_g_sqlite(con:sqlite3.Connection, undirected = True):
     # Take the sum for each diagonal element
     cur.execute("INSERT INTO neg_laplacian_edgelist SELECT source, source, -sum(weight) FROM edgelist GROUP BY source")
     
+    cur.execute("DROP TABLE IF EXISTS g_edgelist")
     cur.execute("CREATE TABLE g_edgelist(source INT, destination INT, weight FLOAT)")
 
     MAX_WEIGHT = cur.execute("SELECT MAX(ABS(weight)) FROM neg_laplacian_edgelist").fetchone()[0]
