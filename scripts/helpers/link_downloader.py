@@ -27,7 +27,7 @@ def process_file(filepath, nodes, edges, filesize):
     filetype = magic.from_file(filepath)
     if filetype.startswith("ASCII text") or filetype.startswith("CSV") or filetype.startswith("Unicode text") or filetype.startswith("C source"):
         #print(f"Need TXT Processing")
-        df = f.parse_via_regex(filepath, r"^(\d+)[ \t,]+(\d+)[ \t,]+([-+]?\d+(?:\.\d+)?(?:(?:[Ee]-\d+)?)?)")
+        df = f.parse_via_regex(filepath, r"^\s*(\d+)[ \t,]+(\d+)[ \t,]+([-+]?\d+(?:\.\d+)?(?:(?:[Ee]-\d+)?)?)")
         if df is not None and df.shape[0] in range(edges-1, int(edges+2)):
             success += 1
             print(f"File Found {success}/{attempts}")
@@ -118,7 +118,7 @@ for source_UID_res in source_UIDS:
     except FileExistsError:
         pass
 
-    res2 = cur.execute("SELECT dataset_UID, url, node_count, edge_count, file_size FROM datasets WHERE source_UID = ? and file_format = 'txt'", [source_UID])
+    res2 = cur.execute("SELECT dataset_UID, url, node_count, edge_count, file_size FROM datasets WHERE source_UID = ? and (file_format = 'txt' or file_format='csv' or file_format='txt') and data_format='edgelist'", [source_UID])
     dataset_entries = res2.fetchall()
     
     for dataset_entry in dataset_entries:
@@ -144,7 +144,11 @@ for source_UID_res in source_UIDS:
             #print(f"Error: {source_UID}/{dataset_UID} Webpage Read Timeout")
             continue
         except requests.exceptions.SSLError:
-                continue
+            continue
+        except requests.exceptions.ConnectionError:
+            continue
+        except requests.exceptions.TooManyRedirects:
+            continue
 
         try:
             driver.get(url)
