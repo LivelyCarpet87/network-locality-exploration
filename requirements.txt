@@ -7,3 +7,5 @@ matplotlib
 numpy
 python-magic
 requests
+pycairo
+cairocffi
