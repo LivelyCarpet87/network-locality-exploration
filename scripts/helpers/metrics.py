@@ -108,3 +108,22 @@ def calculate_geodesic_k(edgelist:pd.DataFrame, src:int, k:int, directional=Fals
     dist.sort_values("Distance", inplace=True)
     return dist
 
+def convert_to_g_sqlite(con:sqlite3.Connection, undirected=True):
+    cur = con.cursor()
+    cur.execute("CREATE TABLE neg_laplacian_edgelist(source INT, destination INT, weight FLOAT)")
+    con.commit()
+
+    res = cur.execute("SELECT source, destination, max(weight) FROM edgelist GROUP BY source,destination WHERE source != destination")
+    edges = res.fetchall()
+    for edge in edges:
+        source, destination, weight = edge
+        cur.execute("INSERT INTO neg_laplacian_edgelist VALUES(?, ?, ?)", source, destination, -weight)
+    
+    if undirected:
+        res = cur.execute("SELECT source FROM edgelist UNION SELECT destination FROM edgelist")
+        sources = res.fetchall()
+        for row in sources:
+            source = row[0]
+            res = cur.execute("INSERT INTO neg_laplacian_edgelist VALUES(?, ?, (SELECT sum(weight) FROM edgelist WHERE source = ? OR destination = ?))", [source, source, source, source])
+    else:
+        res = cur.execute("INSERT INTO neg_laplacian_edgelist VALUES(SELECT source, source, sum(weight) FROM edgelist GROUP BY source)")
