@@ -5,6 +5,7 @@ import re
 from igraph import Graph
 import numpy as np
 import sqlite3
+import sqlite3
 
 DEFAULT_UNWEIGHTED_NETWORK_WEIGHT = 1
 
@@ -59,11 +60,11 @@ def create_graph(dataframe, directional=False):
     G = Graph.DataFrame(dataframe, directed=directional)
     return G
 
-def parse_via_regex_sqlite(filename_in:str, pattern:str, order=[0,1,2], unweighted=False):
+def parse_via_regex_sqlite(filename_in:str, pattern:str, order=[0,1,2], unweighted=False, undirected=True):
     contents = open(filename_in).read()
-    return parse_content_via_regex_sqlite(contents, pattern, order, unweighted)
+    return parse_content_via_regex_sqlite(contents, pattern, order, unweighted, undirected)
 
-def parse_content_via_regex_sqlite(contents, pattern:str, order=[0,1,2], unweighted=False, absolute=True):
+def parse_content_via_regex_sqlite(contents, pattern:str, order=[0,1,2], unweighted=False, absolute=True, undirected=True):
     con = sqlite3.connect(":memory:")
     #con = sqlite3.connect("./debug.db")
 
@@ -89,5 +90,7 @@ def parse_content_via_regex_sqlite(contents, pattern:str, order=[0,1,2], unweigh
         else:
             ret.append(DEFAULT_UNWEIGHTED_NETWORK_WEIGHT)
         cur.execute("INSERT INTO edgelist VALUES(?, ?, ?)", ret)
+    #if undirected:
+    #    cur.execute("INSERT INTO edgelist SELECT destination, source, weight FROM edgelist")
     con.commit()
     return con
