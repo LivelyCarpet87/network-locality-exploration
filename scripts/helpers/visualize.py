@@ -62,23 +62,35 @@ def graph_information_neighborhood(con:sqlite3.Connection):
 
 def graph_conditional_probability(con:sqlite3.Connection):
     cur = con.cursor()
-    max_distance = cur.execute("SELECT MAX(distance) FROM geodesic_distances_cross").fetchone()[0]
-    max_order = cur.execute("SELECT MAX(degree) FROM geodesic_distances_cross").fetchone()[0]
-    m = [[0 for i in range(max_order+1)] for j in range(max_order+1)]
-    distance_step = max_distance/(max_order+1)
-    for distance_step_count in range(0,max_order+1):
-        for order_step_count in range(0,max_order+1):
-            distance_range_start = distance_step*distance_step_count
-            distance_range_end = distance_range_start + distance_step
+    connections = cur.execute("SELECT source, destination, distance FROM a_geodesic_distances_cross").fetchall()
+    
+    TOTAL_COUNT = len(connections)
+
+    MAX_DISTANCE = cur.execute("SELECT MAX(distance) FROM a_geodesic_distances_cross").fetchone()[0]
+    MAX_ORDER = cur.execute("SELECT MAX(degree) FROM g_geodesic_distances_cross").fetchone()[0]
+
+    m = [[np.NaN for i in range(MAX_ORDER+1)] for j in range((int(MAX_DISTANCE)+1)*10)]
+
+    for distance_step_count in range(0,(int(MAX_DISTANCE)+1)*10):
+        for order_step_count in range(0,(MAX_ORDER+1)):
+            distance_range_start = distance_step_count/10
+            distance_range_end = distance_step_count + MAX_DISTANCE/10
             order_range_start = order_step_count
             order_range_end = order_range_start + 1
             
-            query = cur.execute("SELECT source FROM geodesic_distances_cross WHERE distance > ? AND distance <= ? AND degree >= ? AND degree < ?", 
+            query = cur.execute("""
+                                SELECT COUNT(l.distance)
+                                FROM a_geodesic_distances_cross l
+                                INNER JOIN g_geodesic_distances_cross r ON
+                                l.source = r.source AND l.destination = r.destination
+                                WHERE l.distance > ? AND l.distance <= ? AND r.degree >= ? AND r.degree < ?
+                                """, 
                                 [distance_range_start,distance_range_end,order_range_start,order_range_end])
-            count = len(query.fetchall())
-            m[distance_step_count][order_step_count] = count
+            count = query.fetchone()[0]
+            if count != 0:
+                m[distance_step_count][order_step_count] = np.log(count/TOTAL_COUNT)
     print(m)
-    npm = np.matrix(m)
-    plt.matshow(npm)
+    fig, ax = plt.subplots(figsize=(10,10))
+    ax.matshow(m)
     plt.show()
     
