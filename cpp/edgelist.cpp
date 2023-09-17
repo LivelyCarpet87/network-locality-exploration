@@ -21,7 +21,7 @@ edgelist::edgelist(bool isDirectional){
     this->Directional = isDirectional;
 }
 
-void edgelist::update_edge(int src, int dest, double weight){
+void edgelist::insert_edge(int src, int dest, double weight){
 
     // Test if the src vertex is in the first layer of Edges, insert it if it is not
     if (this->Edges.find(src) == this->Edges.end()){
@@ -53,9 +53,18 @@ void edgelist::rm_edge(int src, int dest){
     if (this->Edges.find(src) != this->Edges.end()){
         this->Edges[src].erase(dest);
     }
-    
     if (this->RevEdges.find(dest) != this->RevEdges.end()){
         this->RevEdges[dest].erase(src);
+    }
+
+    // Check in reverse direction if the network is not directional
+    if (!this->Directional){
+        if (this->Edges.find(dest) != this->Edges.end()){
+        this->Edges[dest].erase(src);
+        }
+        if (this->RevEdges.find(src) != this->RevEdges.end()){
+            this->RevEdges[src].erase(dest);
+        }
     }
 }
 
@@ -232,25 +241,24 @@ edgelist edgelist::take_neg_laplacian(){
     omp_lock_t writelock;
     omp_init_lock(&writelock);
 
+    // Iterate through all non-diagonals
     #pragma omp parallel for collapse(2)
     for (int i = 0; i <= dim; i++){
         for (int j = 0; j <= dim; j++){
-            if (i == j) {
+
+            if (i == j) { // Skip diagonal, thus ignoring self edges
                 continue;
             }
 
             std::vector<double> edge_weights = get_edge_weights(i,j);
             
             if (!edge_weights.empty()){
-                double max_weight = -INFINITY;
-                for (double weight : edge_weights){
-                    double abs_weight = std::abs(weight);
-                    if (abs_weight > max_weight){
-                        max_weight = abs_weight;
-                    }
+                double total_weight = 0;
+                for (double weight : edge_weights){ // Find total weight if multiple edges exist
+                    total_weight += weight;
                 }
                 omp_set_lock(&writelock);
-                neg_laplacian.update_edge(i, j, max_weight);
+                neg_laplacian.insert_edge(i, j, total_weight); // Set value to -1 * (-1 * weight) for non-diagonal elements b/c negative laplacian
                 omp_unset_lock(&writelock);
             }
         }
@@ -264,29 +272,24 @@ edgelist edgelist::take_neg_laplacian(){
     // Iterate along diagonal
     double* diagonal_vals = new double[dim+1];
     #pragma omp parallel for
-    for (int i = 0; i <= dim; i++){
+    for (int i = 0; i <= dim; i++){ // For each element on the diagonal
         double total_weight = 0;
-        for (int j = 0; j <=dim; j++){
-            if (i == j){
+        for (int j = 0; j <=dim; j++){ // Iterate through all connected edges
+            if (i == j){ // Skip self edges
                 continue;
             }
             std::vector<double> edge_weights = get_edge_weights(i,j);
             if (!edge_weights.empty()){
-                double max_weight = -INFINITY;
                 for (double weight : edge_weights){
-                    double abs_weight = std::abs(weight);
-                    if (abs_weight > max_weight){
-                        max_weight = abs_weight;
-                    }
+                    total_weight += weight; // Find total weight for edges if multiple edges exist
                 }
-                total_weight += max_weight;
             }
         }
-        diagonal_vals[i] = -total_weight;
+        diagonal_vals[i] = -total_weight; // Set as negative of total weight b/c negative laplacian
     }
 
     for (int i = 0; i <= dim; i++){
-        neg_laplacian.update_edge(i, i, diagonal_vals[i]);
+        neg_laplacian.insert_edge(i, i, diagonal_vals[i]);
     }
     delete[] diagonal_vals;
 
@@ -297,9 +300,10 @@ edgelist edgelist::neg_laplacian_to_g(){
     edgelist g_edgelist = edgelist(false);
     int dim = max_vertex();
 
+    // Finding the largest absolute edge weight in the sparse negative laplacian matrix
     std::vector<struct edge> edges = get_edges();
     double max_absolute_weight = -INFINITY;
-    for (struct edge edge : edges){
+    for (struct edge edge : edges){ // Iterate through each edge in the negative laplacian matrix
         double abs_weight = std::abs(edge.weight);
         if (abs_weight > max_absolute_weight){
             max_absolute_weight = abs_weight;
@@ -314,10 +318,14 @@ edgelist edgelist::neg_laplacian_to_g(){
     #pragma omp parallel for
     for (int i = 0; i <= dim; i++){
         for (int j = 0; j <= dim; j++){
+            // For each i,j pair
+
             std::vector<double> edge_weights = get_edge_weights(i,j);
             std::vector<double> edge_weights_rev = get_edge_weights(j,i);
             edge_weights.insert(edge_weights.end(),edge_weights_rev.begin(),edge_weights_rev.end());
-            if (!edge_weights.empty()){
+            // If an edge exists
+            if (!edge_weights.empty()){ 
+                // Get the maximum absolute weight for the edge
                 double max_abs_weight_for_edge = -INFINITY;
                 for (double weight : edge_weights){
                     double abs_weight = std::abs(weight);
@@ -325,11 +333,14 @@ edgelist edgelist::neg_laplacian_to_g(){
                         max_abs_weight_for_edge = abs_weight;
                     }
                 }
+                // calculate y
                 double y = max_absolute_weight / max_abs_weight_for_edge;
                 omp_set_lock(&writelock);
+                // use y to approximate the result of the inverse of v(x) to get approximate x with linear interpolation
                 double x = funcs::w_func(y);
+                // Set the edge in the g_edgelist as the maximum between x and epsilon
                 double g = std::max(x,funcs::EPSILON);
-                g_edgelist.update_edge(i, j, g);
+                g_edgelist.insert_edge(i, j, g);
                 omp_unset_lock(&writelock);
             }
         }

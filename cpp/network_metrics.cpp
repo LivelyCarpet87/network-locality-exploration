@@ -1,5 +1,6 @@
 #include <queue>
 #include <vector>
+#include <set>
 #include <limits>
 #include <cmath>
 #include <cfloat>
@@ -38,17 +39,20 @@ void metrics::print_distance_to_vertices(metrics::distance_btwn_vertices dbv){
 metrics::distance_to_vertices metrics::geodesic_distance_k(edgelist &edgelist, metrics::src_vertex src, int k){
     metrics::distance_to_vertices dtv; // Distance to vertex
     std::queue<int> priority_queue; // queue representing the frontier
+    std::set<int> priority_queue_contents;
 
     // Initialize the src vertex distances to zero
     dtv[src].info_distance = 0;
     dtv[src].net_distance = 0;
 
     priority_queue.push(src); // Add src vertex to frontier
+    priority_queue_contents.emplace(src);
 
     while (!priority_queue.empty()){ // While frontier not empty
         // Pop front of frontier to test adjacent endges
         metrics::src_vertex from = priority_queue.front();
         priority_queue.pop();
+        priority_queue_contents.extract(from);
 
         // Preload the distances for the frontier vertex
         double from_info_distance = dtv.at(from).info_distance;
@@ -60,6 +64,11 @@ metrics::distance_to_vertices metrics::geodesic_distance_k(edgelist &edgelist, m
             // Get edge destination and weight
             metrics::src_vertex to = edge.dest;
             double weight = edge.weight;
+
+            // Ignore self edges
+            if (to == from){
+                continue;
+            }
             
             // initialize distances to infinity if no known distance exists or load existing distances
             double current_to_info_distance;
@@ -88,11 +97,16 @@ metrics::distance_to_vertices metrics::geodesic_distance_k(edgelist &edgelist, m
                     .net_distance = possible_to_net_distance
                 };
                 dtv[to] = dtp;
-                priority_queue.push(to); // If updated, add to the frontier
-
+                if (priority_queue_contents.find(to) == priority_queue_contents.end()){
+                    priority_queue.push(to); // If updated, add to the frontier
+                    priority_queue_contents.emplace(to);
+                }
             } else if (std::abs(current_to_info_distance - possible_to_info_distance) < possible_to_info_distance*MINIMAL_PERCENT_ROUNDING_ERR && current_to_net_distance > possible_to_net_distance){
                 dtv.at(to).net_distance = possible_to_net_distance;
-                priority_queue.push(to);
+                if (priority_queue_contents.find(to) == priority_queue_contents.end()){
+                    priority_queue.push(to); // If updated, add to the frontier
+                    priority_queue_contents.emplace(to);
+                }
             }
         }
     }
@@ -103,17 +117,20 @@ metrics::distance_to_vertices metrics::geodesic_distance_k(edgelist &edgelist, m
 metrics::distance_to_vertices metrics::geodesic_distance_tau(edgelist &edgelist, metrics::src_vertex src, double tau){
     metrics::distance_to_vertices dtv; // Distance to vertex
     std::queue<int> priority_queue; // queue representing the frontier
+    std::set<int> priority_queue_contents;
 
     // Initialize the src vertex distances to zero
     dtv[src].info_distance = 0;
     dtv[src].net_distance = 0;
 
     priority_queue.push(src); // Add src vertex to frontier
+    priority_queue_contents.emplace(src);
 
     while (!priority_queue.empty()){ // While frontier not empty
         // Pop front of frontier to test adjacent endges
         metrics::src_vertex from = priority_queue.front();
         priority_queue.pop();
+        priority_queue_contents.extract(from);
 
         // Preload the distances for the frontier vertex
         double from_info_distance = dtv.at(from).info_distance;
@@ -125,6 +142,11 @@ metrics::distance_to_vertices metrics::geodesic_distance_tau(edgelist &edgelist,
             // Get edge destination and weight
             metrics::src_vertex to = edge.dest;
             double weight = edge.weight;
+
+            // Ignore self edges
+            if (to == from){
+                continue;
+            }
             
             // initialize distances to infinity if no known distance exists or load existing distances
             double current_to_info_distance;
@@ -147,16 +169,22 @@ metrics::distance_to_vertices metrics::geodesic_distance_tau(edgelist &edgelist,
             }
 
             // Update the data if passing the edge leads to a shorter distance (information > network)
-            if (current_to_info_distance - possible_to_info_distance > possible_to_info_distance*MINIMAL_PERCENT_ROUNDING_ERR){
+            if (current_to_info_distance - possible_to_info_distance > possible_to_info_distance*MINIMAL_PERCENT_ROUNDING_ERR){ // The code uses the difference between values because of the imprecision and error accumulation of floating point value operations in computers
                 metrics::distance_pair dtp = {
                     .info_distance = possible_to_info_distance,
                     .net_distance = possible_to_net_distance
                 };
                 dtv[to] = dtp;
-                priority_queue.push(to); // If updated, add to the frontier
+                if (priority_queue_contents.find(to) == priority_queue_contents.end()){
+                    priority_queue.push(to); // If updated, add to the frontier
+                    priority_queue_contents.emplace(to);
+                }
             } else if (std::abs(current_to_info_distance - possible_to_info_distance) < possible_to_info_distance*MINIMAL_PERCENT_ROUNDING_ERR  && current_to_net_distance > possible_to_net_distance){
                 dtv.at(to).net_distance = possible_to_net_distance;
-                priority_queue.push(to);
+                if (priority_queue_contents.find(to) == priority_queue_contents.end()){
+                    priority_queue.push(to); // If updated, add to the frontier
+                    priority_queue_contents.emplace(to);
+                }
             }
         }
     }
@@ -275,7 +303,7 @@ metrics::distance_to_vertices metrics::n_tilda_gamma_neighborhood(edgelist &neg_
             MU = abs_weight;
         }
     }
-    KAPPA *= funcs::v_func(funcs::EPSILON);
+    // KAPPA *= funcs::v_func(funcs::EPSILON); Not according github
 
     // Threshold to stop using inverse approximation w_func and start using v_func
     double max_approx_x;
@@ -391,9 +419,9 @@ double metrics::L_neighborhood_reduction_rate(edgelist &neg_laplacian_edgelist, 
         }
     }
     if (MU == 0){
-        return 0;
+        return INFINITY;
     }
-    KAPPA *= funcs::v_func(funcs::EPSILON);
+    // KAPPA *= funcs::v_func(funcs::EPSILON); Removed in github
     double res = KAPPA / (funcs::v_func(max_distance) * MU);
     if (res == INFINITY){
         std::cerr << "L_neighborhood_reduction_rate resulted in infinity\n";
@@ -412,13 +440,21 @@ double metrics::L_neighborhood_reduction_rate_average(edgelist &neg_laplacian_ed
         res[src] = L_neighborhood_reduction_rate(neg_laplacian_edgelist, g_tilda_edgelist, L, src);
     }
     long double total = 0;
+    int count = 0;
     for (int src = 0; src <= dim; src++){
-        total += res[src];
+        double val = res[src];
+        if (val != INFINITY){
+            total += val;
+            count ++;
+        }
     }
     delete[] res;
     if (total == INFINITY){
         std::cerr << "Total Overflowed\n";
         exit(1);
+    } else if (count == 0){
+        std::cerr << "No valid values\n";
+        exit(1);
     }
-    return total / (dim+1);
+    return total / count;
 }

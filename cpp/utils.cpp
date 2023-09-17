@@ -21,13 +21,13 @@ edgelist edgelist_from_file(bool weighted, std::string filepath){
             int dest;
             double weight;
             if (sscanf(line.c_str(), "%d %d %lf", &src, &dest, &weight) == 3){
-                new_edgelist.update_edge(src, dest, weight);
+                new_edgelist.insert_edge(src, dest, weight);
             }
         } else {
             int src;
             int dest;
             if (sscanf(line.c_str(), "%d %d", &src, &dest) == 2){
-                new_edgelist.update_edge(src, dest, 1);
+                new_edgelist.insert_edge(src, dest, 1);
             }
         }
     }
