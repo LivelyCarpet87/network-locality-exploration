@@ -32,13 +32,13 @@ namespace metrics {
 
     /**
      * Prints the contents of a distance to vertices structure (one to all)
-     * @param dtn The targeted distance_to_vertices struct to print
+     * @param dtv The targeted distance_to_vertices struct to print
     */
-    void print_distance_to_vertices(distance_to_vertices dtn);
+    void print_distance_to_vertices(distance_to_vertices dtv);
 
     /**
      * Prints the contents of a distance btwn vertices structure (all to all)
-     * @param dbn The targeted distance_btwn_vertices struct to print
+     * @param dbv The targeted distance_btwn_vertices struct to print
     */
     void print_distance_to_vertices(distance_btwn_vertices dbv);
 
