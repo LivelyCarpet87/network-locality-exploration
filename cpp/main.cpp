@@ -161,8 +161,9 @@ void watts_strogatz_generation_task(std::string OUTPUT_DB) {
  * @param FILEPATH The path to the file storing the edgelist in the format of "src dest [weight]" each line
  * @param WEIGHTED Whether if the network in the edgelist file is weighted
  * @param DIRECTED Whether if the network in the edgelist is directed
+ * @param GAMMA Value of gamma when calculating the neighborhood
 */
-void process_network_s_avg(std::string ID, std::string FILEPATH, bool WEIGHTED, bool DIRECTED){
+void process_network_s_avg(std::string ID, std::string FILEPATH, bool WEIGHTED, bool DIRECTED, double GAMMA){
     // Initialize database
     sqlite3 *db;
     char *zErrMsg = 0;
@@ -191,9 +192,9 @@ void process_network_s_avg(std::string ID, std::string FILEPATH, bool WEIGHTED, 
     }
     
     // Calculate S_Avg
-    double S_avg = metrics::s_avg_gamma(neg_laplacian, g_edgelist, 0.05);
+    double S_avg = metrics::s_avg_gamma(neg_laplacian, g_edgelist, GAMMA);
     std::string sql_insert_query = "INSERT INTO S_average (NET_ID,GAMMA,avg_s) " \
-    "VALUES ('" + ID + "', 0.05, " + std::to_string(S_avg) + ")\n";
+    "VALUES ('" + ID + "', "+std::to_string(GAMMA)+", " + std::to_string(S_avg) + ")\n";
 
     if (sqlite3_exec(db, sql_insert_query.c_str(), NULL, 0, &zErrMsg) != SQLITE_OK){
         fprintf(stderr, "Insertion SQL error: %s\n", zErrMsg);
@@ -203,6 +204,7 @@ void process_network_s_avg(std::string ID, std::string FILEPATH, bool WEIGHTED, 
 
 /**
  * Loads a network from a given file and calculates the L_neighborhood_reduction_avg to be saved in the results SQLite3 db under a task id.
+ * Calculates for 0 < L <= 100.
  * @param ID The ID to save the results under
  * @param FILEPATH The path to the file storing the edgelist in the format of "src dest [weight]" each line
  * @param WEIGHTED Whether if the network in the edgelist file is weighted
@@ -298,36 +300,230 @@ double watts_strogatz_small_world_network_L_neighborhood_reduction_avg_task(int 
 
 int main(int argc, char* argv[]){
     std::setprecision(10);
-
     
-    const std::string OUTPUT_DB = "output-8.db";
-    watts_strogatz_generation_task(OUTPUT_DB);
-    
+    const std::string OUTPUT_DB = "output.db";
+    int parsed_args = 0;
 
-    watts_strogatz_small_world_network_gamma_neighborhood_task(6.5E4,6,0.2);
-
-    /*
-    for (int L = 1; L <=100; L++){
-        double avg = 0;
-        for (int i = 0; i < 20; i++){
-            avg += watts_strogatz_small_world_network_L_neighborhood_reduction_avg_task(L,3E4,6,0.2);
-        }
-        avg /= 20;
-        std::cout << "L=" << L << "; avg L_neighborhood_reduction =" << avg <<"\n";
+    // Read Edgelist Source
+    std::string dataset_source;
+    if (argc < parsed_args + 1) {
+        std::cerr << "Insufficient Arguments\n";
+        exit(1);
+    } else {
+        dataset_source = argv[1];
+        parsed_args ++;
     }
-    */
 
-    /*
-    // Process network file
-    if (argc < 4){
+    // Determine Edgelist Source
+    edgelist a_edgelist;
+    if (dataset_source.compare("gen_watts_strogatz") == 0){
+        if (argc < parsed_args + 3) {
+            std::cerr << "Insufficient Arguments To Generate Watts Strogatz Network.\n";
+            exit(1);
+        }
+        std::cout << "Attempting to generate a Watts Strogatz network.\n";
+        int SIZE;
+        int AVG_DEG;
+        double REWIRING_PROB;
+        SIZE = atoi(argv[parsed_args + 1]);
+        AVG_DEG = atoi(argv[parsed_args + 2]);
+        try {
+            REWIRING_PROB = std::stod(argv[parsed_args + 3]);
+        } catch (...){
+            std::cerr << "ERROR: Invalid REWIRING_PROB value.\n";
+            exit(1);
+        }
+        if ( !(SIZE > 0) ) {
+            std::cerr << "ERROR: Invalid network size value.\n";
+            exit(1);
+        } else if ( !(AVG_DEG > 0 && AVG_DEG % 2 == 0) ) {
+            std::cerr << "ERROR: Invalid AVG_DEG value.\n";
+            exit(1);
+        } else if ( !(REWIRING_PROB>=0 && REWIRING_PROB <= 1) ){
+            std::cerr << "ERROR: Invalid REWIRING_PROB value. Please pick a number between 0 and 1 (inclusive).\n";
+            exit(1);
+        }
+        parsed_args += 3;
+        generate_watts_strogatz_small_world_network(a_edgelist, SIZE, AVG_DEG, REWIRING_PROB);
+
+    } else if (dataset_source.compare("load_file") == 0){
+        if (argc < parsed_args + 3) {
+            std::cerr << "Insufficient Arguments To Load Edgelist File.\n";
+            exit(1);
+        }
+        std::cout << "Attempting to load an edgelist file.\n";
+        const std::string filepath = argv[parsed_args + 1];
+        const bool weighted = bool(atoi(argv[parsed_args + 2]));
+        const bool directed = bool(atoi(argv[parsed_args + 3]));
+        parsed_args += 3;
+
+        a_edgelist = edgelist_from_file(weighted, filepath);
+        a_edgelist.set_directional(directed);
+    } else {
+        std::cerr << "Invalid Edgelist Source Option\n";
         exit(1);
     }
-    const std::string ID = argv[1];
-    const std::string FILEPATH = argv[2];
-    const bool WEIGHTED = bool(atoi(argv[3]));
-    const bool DIRECTED = bool(atoi(argv[4]));
-    process_network(ID, FILEPATH, WEIGHTED, DIRECTED);
-    */
+
+    // Calculate neg_laplacian and g_tilda
+    //edgelist nl_edgelist = a_edgelist.take_neg_laplacian();
+    //edgelist g_edgelist = nl_edgelist.neg_laplacian_to_g();
+    //std::cout << g_edgelist.to_string();
+    
+    // Read Action
+    std::string action;
+    if (argc < parsed_args + 1) {
+        std::cerr << "Insufficient Arguments To Define Action.\n";
+        exit(1);
+    } else {
+        action = argv[parsed_args+1];
+        parsed_args ++;
+    }
+
+    // Determine action
+    if (action.compare("convert_g_tilda") == 0){
+        if (argc < parsed_args + 1) {
+            std::cerr << "ERROR: Insufficient Arguments To Write To Edgelist File.\n";
+            exit(1);
+        }
+        const std::string filepath = argv[parsed_args + 1];
+        parsed_args += 1;
+
+        edgelist nl_edgelist = a_edgelist.take_neg_laplacian();
+        edgelist g_edgelist = nl_edgelist.neg_laplacian_to_g();
+
+        std::cout << "Attempting to write edgelist to file.\n";
+        g_edgelist.save_edgelist_as_plaintext(filepath);
+
+    } else if (action.compare("dtv_k") == 0){
+        int src;
+        int k;
+
+        if (argc < parsed_args + 2) {
+            std::cerr << "ERROR: Insufficient Arguments To Define Action.\n";
+            exit(1);
+        }
+
+        src = atoi(argv[parsed_args + 1]);
+        k = atoi(argv[parsed_args + 2]);
+        parsed_args += 2;
+
+        if ( !( (src > 0 || (src == 0 && argv[parsed_args + 1][0] == '0' ) ) && src <= a_edgelist.max_vertex() ) ){
+            std::cerr << "ERROR: Invalid starting SRC vertex ID for Distance To Vertex operation.\n";
+            exit(1);
+        }
+        if ( !( k > 0 ) ){
+            std::cerr << "ERROR: Invalid limit k for Distance To Vertex operation.\n";
+            exit(1);
+        }
+
+        metrics::distance_to_vertices dtv = metrics::geodesic_distance_k(a_edgelist, src, k);
+        metrics::print_distance_to_vertices(dtv);
+
+    } else if (action.compare("dtv_tau") == 0){
+        int src;
+        double tau;
+
+        if (argc < parsed_args + 2) {
+            std::cerr << "ERROR: Insufficient Arguments To Define Action.\n";
+            exit(1);
+        }
+
+        src = atoi(argv[parsed_args + 1]);
+        try {
+            tau = std::stod(argv[parsed_args + 2]);
+        } catch (...){
+            std::cerr << "ERROR: Invalid limit tau for Distance To Vertex operation.\n";
+            exit(1);
+        }
+
+        parsed_args += 2;
+
+        if ( !( (src > 0 || (src == 0 && argv[parsed_args + 1][0] == '0' ) ) && src <= a_edgelist.max_vertex() ) ){
+            std::cerr << "ERROR: Invalid starting SRC vertex ID for Distance To Vertex operation.\n";
+            exit(1);
+        }
+        if ( !( tau > 0 ) ){
+            std::cerr << "ERROR: Invalid limit tau for Distance To Vertex operation.\n";
+            exit(1);
+        }
+
+        metrics::distance_to_vertices dtv = metrics::geodesic_distance_tau(a_edgelist, src, tau);
+        metrics::print_distance_to_vertices(dtv);
+
+    } else if (action.compare("dbv_k") == 0){
+        int k;
+
+        if (argc < parsed_args + 1) {
+            std::cerr << "Insufficient Arguments To Define Action.\n";
+            exit(1);
+        }
+
+        k = atoi(argv[parsed_args + 1]);
+        parsed_args += 1;
+        if ( !( k > 0 ) ){
+            std::cerr << "Invalid limit k for Distance To Vertex operation.\n";
+            exit(1);
+        }
+
+        metrics::distance_btwn_vertices dbv = metrics::cross_geodesic_distance_k(a_edgelist, k);
+        metrics::print_distance_to_vertices(dbv);
+
+    } else if (action.compare("dbv_tau") == 0){
+        double tau;
+
+        if (argc < parsed_args + 1) {
+            std::cerr << "ERROR: Insufficient Arguments To Define Action.\n";
+            exit(1);
+        }
+
+        try {
+            tau = std::stod(argv[parsed_args + 1]);
+            parsed_args += 1;
+        } catch (...){
+            std::cerr << "ERROR: Invalid limit tau for Distance To Vertex operation.\n";
+            exit(1);
+        }
+
+        if ( !( tau > 0 ) ){
+            std::cerr << "ERROR: Invalid limit tau for Distance To Vertex operation.\n";
+            exit(1);
+        }
+
+        metrics::distance_btwn_vertices dbv = metrics::cross_geodesic_distance_tau(a_edgelist, tau);
+        metrics::print_distance_to_vertices(dbv);
+
+    } else if (action.compare("s_avg") == 0){
+        double GAMMA;
+
+        if (argc < parsed_args + 1) {
+            std::cerr << "ERROR: Insufficient Arguments To Define Action.\n";
+            exit(1);
+        }
+
+        try {
+            GAMMA = std::stod(argv[parsed_args + 1]);
+            parsed_args += 1;
+        } catch (...){
+            std::cerr << "ERROR: Invalid Gamma.\n";
+            exit(1);
+        }
+
+        if ( !( GAMMA > 0 && GAMMA < 1) ){
+            std::cerr << "ERROR: Invalid Gamma value given.\n";
+            exit(1);
+        }
+
+        edgelist nl_edgelist = a_edgelist.take_neg_laplacian();
+        edgelist g_edgelist = nl_edgelist.neg_laplacian_to_g();
+
+        double S_avg = metrics::s_avg_gamma(nl_edgelist, g_edgelist, GAMMA);
+
+        std::cout << "S_avg= " << S_avg << "\n";
+    } else {
+        std::cerr << "Invalid Action Option\n";
+        exit(1);
+    }
+    
 
     return 0;
 }

@@ -5,6 +5,8 @@
 #include <algorithm>
 #include <sqlite3.h>
 #include <omp.h>
+#include <iostream>
+#include <fstream>
 
 #include "utils.h"
 #include "funcs.h"
@@ -383,4 +385,19 @@ void edgelist::save_edgelist_to_sqlite(std::string filepath, std::string table_n
     }
     sqlite3_exec(db, "END TRANSACTION", NULL, NULL, &zErrMsg);
     sqlite3_close(db);
+}
+
+void edgelist::save_edgelist_as_plaintext(std::string filepath){
+    std::ofstream output_file;
+    output_file.open(filepath);
+
+    output_file << "% asym weighted" << "\n";
+
+    std::vector<edge> edges = get_edges();
+    for (struct edge edge : edges){
+        char edge_weight [20];
+        sprintf(edge_weight, "%.10E", edge.weight);
+        output_file << edge.src << " " << edge.dest << " " << edge_weight << "\n";
+    }
+    output_file.close();
 }

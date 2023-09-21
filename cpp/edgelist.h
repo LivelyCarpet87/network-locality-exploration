@@ -101,4 +101,10 @@ class edgelist {
          * @param table_name The name of the table to save the edgelist into
         */
         void save_edgelist_to_sqlite(std::string filepath, std::string table_name);
+
+        /**
+         * Saves the edgelist into the given filepath as plaintext
+         * @param filepath Filepath of the text output file
+        */
+        void save_edgelist_as_plaintext(std::string filepath);
 };
