@@ -37,11 +37,9 @@ Set `[ACTION]` to `convert_g_tilda` and `[ACTION OPTIONS]` to the filepath where
 ### Calculate Distances From Vertex To Other Vertices (With Limit k or Tau)
 Set `[ACTION]` to `dtv_k` or `dtv_tau` and `[ACTION OPTIONS]` to `[SRC] [k]` or `[SRC] [tau]`. Eg: Distances from `Vertex 1` on a network loaded from a file with limit $k=10$ would be `task.bin load_file ./data/out.data 1 0 dtv_k 1 10`.
 ### Calculate Distances Between All Vertices (With Limit k or Tau)
-Set `[ACTION]` to `dbv_k` or `dbv_tau` and `[ACTION OPTIONS]` to `[k]` or `[tau]`. Eg: Distances between vertices in a network loaded from a file wiht limit $tau=7.8$ would be `task.bin load_file ./data/out.data 1 0 dbv_tau 7.8`.
+Set `[ACTION]` to `dbv_k` or `dbv_tau` and `[ACTION OPTIONS]` to `[k]` or `[tau]`. Eg: Distances between vertices in a network loaded from a file with limit $tau=7.8$ would be `task.bin load_file ./data/out.data 1 0 dbv_tau 7.8`.
 ### Calculate Y-Neighborhood Size Avg, S_avg(gamma)
-Set `[ACTION]` to `s_avg` and `[ACTION OPTIONS]` to `[GAMMA]`. Eg:
-### Calculate Avg R-Neighborhood Reduction Rate, R_avg(L)
-Set `[ACTION]` to `r_avg` and `[ACTION OPTIONS]` to `[L]`. Eg.
+Set `[ACTION]` to `s_avg` and `[ACTION OPTIONS]` to `[GAMMA]`. Eg: Calculating S_avg in a network loaded from a file with $gamma=0.08$ would be `task.bin load_file ./data/out.data 1 0 s_avg 0.08`.
 
 # Extending The Code
 The files in this project are organized as follows:
