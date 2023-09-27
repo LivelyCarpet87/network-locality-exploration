@@ -10,3 +10,5 @@
  * @return An edgelist object
 */
 edgelist edgelist_from_file(bool weighted, std::string filepath);
+
+void generate_watts_strogatz_small_world_network(edgelist &edgelist, int SIZE, int AVG_DEG, double REWIRING_PROB);
