@@ -16,7 +16,7 @@
 
 #include "network_metrics.h"
 
-const double MINIMAL_PERCENT_ROUNDING_ERR = 0.00001;
+const long double MINIMAL_PERCENT_ROUNDING_ERR = 0.00001;
 
 void metrics::print_distance_to_vertices(metrics::distance_to_vertices dtv){
     for (auto iter : dtv){
@@ -55,7 +55,7 @@ metrics::distance_to_vertices metrics::geodesic_distance_k(edgelist &edgelist, m
         priority_queue_contents.extract(from);
 
         // Preload the distances for the frontier vertex
-        double from_info_distance = dtv.at(from).info_distance;
+        long double from_info_distance = dtv.at(from).info_distance;
         int from_net_distance = dtv.at(from).net_distance;
 
         // Iterate through adjacent edges
@@ -63,7 +63,7 @@ metrics::distance_to_vertices metrics::geodesic_distance_k(edgelist &edgelist, m
         for (struct edge edge: edges){
             // Get edge destination and weight
             metrics::src_vertex to = edge.dest;
-            double weight = edge.weight;
+            long double weight = edge.weight;
 
             // Ignore self edges
             if (to == from){
@@ -71,7 +71,7 @@ metrics::distance_to_vertices metrics::geodesic_distance_k(edgelist &edgelist, m
             }
             
             // initialize distances to infinity if no known distance exists or load existing distances
-            double current_to_info_distance;
+            long double current_to_info_distance;
             int current_to_net_distance;
             if (dtv.find(to) != dtv.end()){
                 current_to_info_distance = dtv.at(to).info_distance;
@@ -82,7 +82,7 @@ metrics::distance_to_vertices metrics::geodesic_distance_k(edgelist &edgelist, m
             }
 
             // Calculate the achieved distances passing through the edge being tested
-            double possible_to_info_distance = from_info_distance + weight;
+            long double possible_to_info_distance = from_info_distance + weight;
             int possible_to_net_distance = from_net_distance + 1;
 
             // Test that passing through the edge meets the condition
@@ -133,7 +133,7 @@ metrics::distance_to_vertices metrics::geodesic_distance_tau(edgelist &edgelist,
         priority_queue_contents.extract(from);
 
         // Preload the distances for the frontier vertex
-        double from_info_distance = dtv.at(from).info_distance;
+        long double from_info_distance = dtv.at(from).info_distance;
         int from_net_distance = dtv.at(from).net_distance;
 
         // Iterate through adjacent edges
@@ -141,7 +141,7 @@ metrics::distance_to_vertices metrics::geodesic_distance_tau(edgelist &edgelist,
         for (struct edge edge: edges){
             // Get edge destination and weight
             metrics::src_vertex to = edge.dest;
-            double weight = edge.weight;
+            long double weight = edge.weight;
 
             // Ignore self edges
             if (to == from){
@@ -149,7 +149,7 @@ metrics::distance_to_vertices metrics::geodesic_distance_tau(edgelist &edgelist,
             }
             
             // initialize distances to infinity if no known distance exists or load existing distances
-            double current_to_info_distance;
+            long double current_to_info_distance;
             int current_to_net_distance;
             if (dtv.find(to) != dtv.end()){
                 current_to_info_distance = dtv.at(to).info_distance;
@@ -160,7 +160,7 @@ metrics::distance_to_vertices metrics::geodesic_distance_tau(edgelist &edgelist,
             }
 
             // Calculate the achieved distances passing through the edge being tested
-            double possible_to_info_distance = from_info_distance + weight;
+            long double possible_to_info_distance = from_info_distance + weight;
             int possible_to_net_distance = from_net_distance + 1;
 
             // Test that passing through the edge meets the condition
@@ -279,11 +279,17 @@ void metrics::dbv_to_sqlite(std::string filepath, std::string table_name, metric
     sqlite3_close(db);
 }
 
+metrics::distance_btwn_vertices dtv_to_dbv(metrics::distance_to_vertices dtv, metrics::src_vertex src){
+    metrics::distance_btwn_vertices dbn;
+    dbn[src] = dtv;
+    return dbn;
+}
+
 metrics::distance_to_vertices metrics::n_tilda_gamma_neighborhood(edgelist &neg_laplacian_edgelist, edgelist &g_tilda_edgelist, int src, const double gamma){
     metrics::distance_to_vertices dtv; // Distance to vertex
     std::queue<int> priority_queue; // queue representing the frontier
-    double MU;
-    double KAPPA;
+    long double MU;
+    long double KAPPA;
 
     // Initialize the src vertex distances to zero
     dtv[src].info_distance = 0;
@@ -294,7 +300,7 @@ metrics::distance_to_vertices metrics::n_tilda_gamma_neighborhood(edgelist &neg_
     KAPPA = -INFINITY;
     std::vector<edge> neg_laplacian_edges = neg_laplacian_edgelist.get_edges();
     for (edge edge: neg_laplacian_edges){
-        double abs_weight = std::abs(edge.weight);
+        long double abs_weight = std::abs(edge.weight);
 
         if (abs_weight > KAPPA){
             KAPPA = abs_weight;
@@ -306,8 +312,8 @@ metrics::distance_to_vertices metrics::n_tilda_gamma_neighborhood(edgelist &neg_
     // KAPPA *= funcs::v_func(funcs::EPSILON); Not according github
 
     // Threshold to stop using inverse approximation w_func and start using v_func
-    double max_approx_x;
-    //double max_approx_y;
+    long double max_approx_x;
+    //long double max_approx_y;
     auto threshold = funcs::max_approximation_threshold_w(KAPPA/(gamma * MU));
     max_approx_x = threshold.first;
     //max_approx_y = threshold.second;
@@ -324,7 +330,7 @@ metrics::distance_to_vertices metrics::n_tilda_gamma_neighborhood(edgelist &neg_
         priority_queue.pop();
 
         // Preload the distances for the frontier vertex
-        double from_info_distance = dtv.at(from).info_distance;
+        long double from_info_distance = dtv.at(from).info_distance;
         int from_net_distance = dtv.at(from).net_distance;
 
         // Iterate through adjacent edges
@@ -332,21 +338,25 @@ metrics::distance_to_vertices metrics::n_tilda_gamma_neighborhood(edgelist &neg_
         for (struct edge edge: edges){
             // Get edge destination and weight
             metrics::src_vertex to = edge.dest;
-            double weight = edge.weight;
+            long double weight = edge.weight;
             
             // initialize distances to infinity if no known distance exists or load existing distances
-            double current_to_info_distance;
+            long double current_to_info_distance;
             int current_to_net_distance;
             if (dtv.find(to) != dtv.end()){
                 current_to_info_distance = dtv.at(to).info_distance;
                 current_to_net_distance = dtv.at(to).net_distance;
+                if (current_to_info_distance > 1E30){
+                    std::cout << "current_to_info_distance: " << current_to_info_distance << "\n";
+                    std::cout << "Warning: Precision Loss Risk. current_to_info_distance exceeded 1E30.\n";
+                }
             } else {
                 current_to_info_distance = INFINITY;
                 current_to_net_distance = INT32_MAX;
             }
 
             // Calculate the achieved distances passing through the edge being tested
-            double possible_to_info_distance = from_info_distance + weight;
+            long double possible_to_info_distance = from_info_distance + weight;
             int possible_to_net_distance = from_net_distance + 1;
 
             // Test that passing through the edge meets the condition
@@ -376,40 +386,49 @@ metrics::distance_to_vertices metrics::n_tilda_gamma_neighborhood(edgelist &neg_
     return dtv;
 }
 
-double metrics::s_avg_gamma(edgelist &neg_laplacian_edgelist, edgelist &g_tilda_edgelist, const double gamma){
+long double metrics::s_avg_gamma(edgelist &neg_laplacian_edgelist, edgelist &g_tilda_edgelist, const double gamma){
     int dim = neg_laplacian_edgelist.max_vertex();
     metrics::distance_to_vertices* res = new metrics::distance_to_vertices[dim+1];
     #pragma omp parallel for
     for (int src = 0; src <= dim; src++){
         res[src] = n_tilda_gamma_neighborhood(neg_laplacian_edgelist, g_tilda_edgelist, src, gamma);
     }
-    double total_size = 0;
+    long double total_size_summation = 0;
     for (int src = 0; src <= dim; src++){
-        total_size += res[src].size();
+        total_size_summation += res[src].size();
+        #ifndef _DEBUG
+        if (total_size_summation > 1E30){
+            std::cout << "Total Sum Of Neighborhood Sizes: " << total_size_summation << "\n";
+            std::cout << "Warning: Precision Loss Risk. Total sum of s_avg_gamma exceeded 1E30.\n";
+        }
+        #endif
     }
     delete[] res;
-    return total_size / (dim+1);
+    #ifndef _DEBUG
+    std::cout << "Total Sum Of Neighborhood Sizes: " << total_size_summation << "\n";
+    #endif
+    return total_size_summation / (dim+1);
 }
 
-double metrics::L_neighborhood_reduction_rate(edgelist &neg_laplacian_edgelist, edgelist &g_tilda_edgelist, const int L, int src) {
+long double metrics::L_neighborhood_reduction_rate(edgelist &neg_laplacian_edgelist, edgelist &g_tilda_edgelist, const int L, int src) {
     // Can be at most (L-1) edges away
     metrics::distance_to_vertices dtv = metrics::geodesic_distance_k(g_tilda_edgelist,src,L-1);
 
-    std::vector<double> distances;
+    std::vector<long double> distances;
     for (auto iter : dtv){
         distances.push_back(iter.second.info_distance);
     }
     sort(distances.begin(), distances.end());
 
     // Get the max distance within L vertices
-    double max_distance = distances.at(std::min(L-1,int(distances.size()-1)));
+    long double max_distance = distances.at(std::min(L-1,int(distances.size()-1)));
 
     // Initialize MU & KAPPA
-    double MU = -INFINITY;
-    double KAPPA = -INFINITY;
+    long double MU = -INFINITY;
+    long double KAPPA = -INFINITY;
     std::vector<edge> neg_laplacian_edges = neg_laplacian_edgelist.get_edges();
     for (edge edge: neg_laplacian_edges){
-        double abs_weight = std::abs(edge.weight);
+        long double abs_weight = std::abs(edge.weight);
 
         if (abs_weight > KAPPA){
             KAPPA = abs_weight;
@@ -422,7 +441,7 @@ double metrics::L_neighborhood_reduction_rate(edgelist &neg_laplacian_edgelist, 
         return INFINITY;
     }
     // KAPPA *= funcs::v_func(funcs::EPSILON); Removed in github
-    double res = KAPPA / (funcs::v_func(max_distance) * MU);
+    long double res = KAPPA / (funcs::v_func(max_distance) * MU);
     if (res == INFINITY){
         std::cerr << "L_neighborhood_reduction_rate resulted in infinity\n";
         std::cerr << funcs::v_func(max_distance) <<"\n";
@@ -432,9 +451,9 @@ double metrics::L_neighborhood_reduction_rate(edgelist &neg_laplacian_edgelist, 
     return res;
 }
 
-double metrics::L_neighborhood_reduction_rate_average(edgelist &neg_laplacian_edgelist, edgelist &g_tilda_edgelist, const int L) {
+long double metrics::L_neighborhood_reduction_rate_average(edgelist &neg_laplacian_edgelist, edgelist &g_tilda_edgelist, const int L) {
     int dim = neg_laplacian_edgelist.max_vertex();
-    double* res = new double[dim+1];
+    long double* res = new long double[dim+1];
     #pragma omp parallel for
     for (int src = 0; src <= dim; src++){
         res[src] = L_neighborhood_reduction_rate(neg_laplacian_edgelist, g_tilda_edgelist, L, src);
@@ -442,7 +461,7 @@ double metrics::L_neighborhood_reduction_rate_average(edgelist &neg_laplacian_ed
     long double total = 0;
     int count = 0;
     for (int src = 0; src <= dim; src++){
-        double val = res[src];
+        long double val = res[src];
         if (val != INFINITY){
             total += val;
             count ++;

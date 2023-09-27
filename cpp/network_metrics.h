@@ -8,7 +8,7 @@ namespace metrics {
 
     // Used to store a pair of information and network distance
     struct distance_pair {
-        double info_distance;
+        long double info_distance;
         int net_distance;
     };
 
@@ -92,6 +92,13 @@ namespace metrics {
     void dbv_to_sqlite(std::string filepath, std::string table_name, distance_btwn_vertices dbv);
 
     /**
+     * Casts a distance_to_vertices struct to the format of the distance_btwn_vertices struct
+     * @param dtv The target distance_to_vertices struct to cast
+     * @param src The vertex ID of the source the dtv struct was generated with
+    */
+    distance_btwn_vertices dtv_to_dbv(distance_to_vertices dtv, src_vertex src);
+
+    /**
      * Calculates a N_tilda(GAMMA) neighborhood with a given set of negative laplacian and g_tilda edgelists, src vertex, and gamma
      * @param neg_laplacian_edgelist The negative laplacian edgelist
      * @param g_tilda_edglist The G_tilda edgelist
@@ -108,7 +115,7 @@ namespace metrics {
      * @param gamma The value of Gamma used to calculate the neighborhood
      * @return S_avg
     */
-    double s_avg_gamma(edgelist &neg_laplacian_edgelist, edgelist &g_tilda_edgelist, const double gamma);
+    long double s_avg_gamma(edgelist &neg_laplacian_edgelist, edgelist &g_tilda_edgelist, const double gamma);
 
     /**
      * Calculates L_Neighborhood_Reduction_Rate(L) for a given set of laplacian and g_tilda edgelists, and L
@@ -118,7 +125,7 @@ namespace metrics {
      * @param src The source vertex ID the neighborhood is centered around
      * @return L_neighborhood_reduction_rate
     */
-    double L_neighborhood_reduction_rate(edgelist &neg_laplacian_edgelist, edgelist &g_tilda_edgelist, const int L, int src);
+    long double L_neighborhood_reduction_rate(edgelist &neg_laplacian_edgelist, edgelist &g_tilda_edgelist, const int L, int src);
 
     /**
      * Calculates L_Neighborhood_Reduction_Rate_Avg(L) for a given set of laplacian and g_tilda edgelists, and L
@@ -127,5 +134,5 @@ namespace metrics {
      * @param L The value of L used to calculate the neighborhood
      * @return L_neighborhood_reduction_rate_avg
     */
-    double L_neighborhood_reduction_rate_average(edgelist &neg_laplacian_edgelist, edgelist &g_tilda_edgelist, const int L);
+    long double L_neighborhood_reduction_rate_average(edgelist &neg_laplacian_edgelist, edgelist &g_tilda_edgelist, const int L);
 };
