@@ -346,9 +346,11 @@ metrics::distance_to_vertices metrics::n_tilda_gamma_neighborhood(edgelist &neg_
             if (dtv.find(to) != dtv.end()){
                 current_to_info_distance = dtv.at(to).info_distance;
                 current_to_net_distance = dtv.at(to).net_distance;
-                if (current_to_info_distance > 1E30){
+                if (current_to_info_distance > 705){
                     std::cout << "current_to_info_distance: " << current_to_info_distance << "\n";
-                    std::cout << "Warning: Precision Loss Risk. current_to_info_distance exceeded 1E30.\n";
+                    std::cout << "current_to_net_distance: " << current_to_net_distance << "\n";
+                    
+                    std::cout << "Warning: Precision Loss Risk. current_to_info_distance exceeded 705.\n";
                 }
             } else {
                 current_to_info_distance = INFINITY;
@@ -362,6 +364,9 @@ metrics::distance_to_vertices metrics::n_tilda_gamma_neighborhood(edgelist &neg_
             // Test that passing through the edge meets the condition
             if (possible_to_info_distance < max_approx_x){
                 // Meets the smaller than approximation condition
+            } else if (funcs::ALPHA*std::pow(possible_to_info_distance,funcs::BETA) > 705){
+                std::cerr << "WARNING: possible_to_info_distance: " << possible_to_info_distance << " about to exceed 1E300 after exponentiation. This may exceed max double value, therefor the value will not be calculated and will be considered too large! \n";
+                continue;
             } else if (KAPPA / funcs::v_func(possible_to_info_distance) > gamma * MU) {
                 // Meets the v_func inequality condition
             } else {
@@ -397,9 +402,9 @@ long double metrics::s_avg_gamma(edgelist &neg_laplacian_edgelist, edgelist &g_t
     for (int src = 0; src <= dim; src++){
         total_size_summation += res[src].size();
         #ifndef _DEBUG
-        if (total_size_summation > 1E30){
+        if (total_size_summation > 1E300){
             std::cout << "Total Sum Of Neighborhood Sizes: " << total_size_summation << "\n";
-            std::cout << "Warning: Precision Loss Risk. Total sum of s_avg_gamma exceeded 1E30.\n";
+            std::cout << "Warning: Precision Loss Risk. Total sum of s_avg_gamma exceeded 1E300.\n";
         }
         #endif
     }

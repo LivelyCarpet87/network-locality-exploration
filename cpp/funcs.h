@@ -9,18 +9,19 @@ namespace funcs {
     }
 
     // The step size used to calculate the v_func
-    const double STEP_SIZE = 0.001;
+    const double STEP_SIZE = 0.0001;
     // The value of the other constants in the functions
     const double EPSILON = 1E-12;
 
+    /*
     const double ALPHA = 1;
     const double BETA = 0.9;
     const double Q = 1.2;
-    /*
+    */
     const double ALPHA = 1;
     const double BETA = 0.9999;
     const double Q = 1.001;
-    */
+    
 
     // The function v(x)
     double v_func(double x);
